@@ -1,8 +1,8 @@
 /*
  * cron4j - A pure Java cron-like scheduler
- * 
+ *
  * Copyright (C) 2007-2010 Carlo Pelliccia (www.sauronsoftware.it)
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version
  * 2.1, as published by the Free Software Foundation.
@@ -144,11 +144,16 @@ import java.util.TimeZone;
  * This pattern causes a task to be launched every day at 05:00, 10:08 and
  * 17:22.
  * </p>
- * 
+ *
  * @author Carlo Pelliccia
  * @since 2.0
  */
 public class SchedulingPattern {
+
+	/**
+	 * The parser for second values.
+	 */
+	private static final ValueParser SECOND_VALUE_PARSER = new SecondValueParser();
 
 	/**
 	 * The parser for the minute values.
@@ -176,8 +181,13 @@ public class SchedulingPattern {
 	private static final ValueParser DAY_OF_WEEK_VALUE_PARSER = new DayOfWeekValueParser();
 
 	/**
+	 * The parser for year values.
+	 */
+	private static final ValueParser YEAR_VALUE_PARSER = new YearValueParser();
+
+	/**
 	 * Validates a string as a scheduling pattern.
-	 * 
+	 *
 	 * @param schedulingPattern
 	 *            The pattern to validate.
 	 * @return true if the given string represents a valid scheduling pattern;
@@ -197,6 +207,10 @@ public class SchedulingPattern {
 	 */
 	private String asString;
 
+	/**
+	 * The ValueMatcher list for the "seconds" field.
+	 */
+	protected ArrayList secondMatchers = new ArrayList();
 	/**
 	 * The ValueMatcher list for the "minute" field.
 	 */
@@ -223,13 +237,18 @@ public class SchedulingPattern {
 	protected ArrayList dayOfWeekMatchers = new ArrayList();
 
 	/**
+	 * The ValueMatcher list for the "year" field.
+	 */
+	protected ArrayList yearMatchers = new ArrayList();
+
+	/**
 	 * How many matcher groups in this pattern?
 	 */
 	protected int matcherSize = 0;
 
 	/**
 	 * Builds a SchedulingPattern parsing it from a string.
-	 * 
+	 *
 	 * @param pattern
 	 *            The pattern as a crontab-like string.
 	 * @throws InvalidPatternException
@@ -244,8 +263,15 @@ public class SchedulingPattern {
 		while (st1.hasMoreTokens()) {
 			String localPattern = st1.nextToken();
 			StringTokenizer st2 = new StringTokenizer(localPattern, " \t");
-			if (st2.countTokens() != 5) {
+			if (st2.countTokens() != 7) {
 				throw new InvalidPatternException("invalid pattern: \"" + localPattern + "\"");
+			}
+			try {
+				secondMatchers.add(buildValueMatcher(st2.nextToken(), SECOND_VALUE_PARSER));
+			} catch (Exception e) {
+				throw new InvalidPatternException("invalid pattern \""
+						+ localPattern + "\". Error parsing second field: "
+						+ e.getMessage() + ".");
 			}
 			try {
 				minuteMatchers.add(buildValueMatcher(st2.nextToken(), MINUTE_VALUE_PARSER));
@@ -284,13 +310,21 @@ public class SchedulingPattern {
 						+ "\". Error parsing days of week field: "
 						+ e.getMessage() + ".");
 			}
+			try {
+				yearMatchers.add(buildValueMatcher(st2.nextToken(), YEAR_VALUE_PARSER));
+			} catch (Exception e) {
+				throw new InvalidPatternException("invalid pattern \""
+						+ localPattern
+						+ "\". Error parsing year field: "
+						+ e.getMessage() + ".");
+			}
 			matcherSize++;
 		}
 	}
 
 	/**
 	 * A ValueMatcher utility builder.
-	 * 
+	 *
 	 * @param str
 	 *            The pattern part for the ValueMatcher creation.
 	 * @param parser
@@ -335,7 +369,7 @@ public class SchedulingPattern {
 
 	/**
 	 * Parses an element of a list of values of the pattern.
-	 * 
+	 *
 	 * @param str
 	 *            The element string.
 	 * @param parser
@@ -380,7 +414,7 @@ public class SchedulingPattern {
 
 	/**
 	 * Parses a range of values.
-	 * 
+	 *
 	 * @param str
 	 *            The range string.
 	 * @param parser
@@ -396,7 +430,7 @@ public class SchedulingPattern {
 			int max = parser.getMaxValue();
 			ArrayList values = new ArrayList();
 			for (int i = min; i <= max; i++) {
-				values.add(new Integer(i));
+				values.add(Integer.valueOf(i));
 			}
 			return values;
 		}
@@ -415,7 +449,7 @@ public class SchedulingPattern {
 		}
 		if (size == 1) {
 			ArrayList values = new ArrayList();
-			values.add(new Integer(v1));
+			values.add(Integer.valueOf(v1));
 			return values;
 		} else {
 			String v2Str = st.nextToken();
@@ -429,20 +463,20 @@ public class SchedulingPattern {
 			ArrayList values = new ArrayList();
 			if (v1 < v2) {
 				for (int i = v1; i <= v2; i++) {
-					values.add(new Integer(i));
+					values.add(Integer.valueOf(i));
 				}
 			} else if (v1 > v2) {
 				int min = parser.getMinValue();
 				int max = parser.getMaxValue();
 				for (int i = v1; i <= max; i++) {
-					values.add(new Integer(i));
+					values.add(Integer.valueOf(i));
 				}
 				for (int i = min; i <= v2; i++) {
-					values.add(new Integer(i));
+					values.add(Integer.valueOf(i));
 				}
 			} else {
 				// v1 == v2
-				values.add(new Integer(v1));
+				values.add(Integer.valueOf(v1));
 			}
 			return values;
 		}
@@ -451,7 +485,7 @@ public class SchedulingPattern {
 	/**
 	 * This methods returns true if the given timestamp (expressed as a UNIX-era
 	 * millis value) matches the pattern, according to the given time zone.
-	 * 
+	 *
 	 * @param timezone
 	 *            A time zone.
 	 * @param millis
@@ -462,6 +496,7 @@ public class SchedulingPattern {
 		GregorianCalendar gc = new GregorianCalendar();
 		gc.setTimeInMillis(millis);
 		gc.setTimeZone(timezone);
+		int second = gc.get(Calendar.SECOND);
 		int minute = gc.get(Calendar.MINUTE);
 		int hour = gc.get(Calendar.HOUR_OF_DAY);
 		int dayOfMonth = gc.get(Calendar.DAY_OF_MONTH);
@@ -469,18 +504,22 @@ public class SchedulingPattern {
 		int dayOfWeek = gc.get(Calendar.DAY_OF_WEEK) - 1;
 		int year = gc.get(Calendar.YEAR);
 		for (int i = 0; i < matcherSize; i++) {
+			ValueMatcher secondMatcher = (ValueMatcher) secondMatchers.get(i);
 			ValueMatcher minuteMatcher = (ValueMatcher) minuteMatchers.get(i);
 			ValueMatcher hourMatcher = (ValueMatcher) hourMatchers.get(i);
 			ValueMatcher dayOfMonthMatcher = (ValueMatcher) dayOfMonthMatchers.get(i);
 			ValueMatcher monthMatcher = (ValueMatcher) monthMatchers.get(i);
 			ValueMatcher dayOfWeekMatcher = (ValueMatcher) dayOfWeekMatchers.get(i);
-			boolean eval = minuteMatcher.match(minute)
+			ValueMatcher yearMatcher = (ValueMatcher) yearMatchers.get(i);
+			boolean eval = secondMatcher.match(second)
+					&& minuteMatcher.match(minute)
 					&& hourMatcher.match(hour)
 					&& ((dayOfMonthMatcher instanceof DayOfMonthValueMatcher) ? ((DayOfMonthValueMatcher) dayOfMonthMatcher)
 							.match(dayOfMonth, month, gc.isLeapYear(year))
 							: dayOfMonthMatcher.match(dayOfMonth))
 					&& monthMatcher.match(month)
-					&& dayOfWeekMatcher.match(dayOfWeek);
+					&& dayOfWeekMatcher.match(dayOfWeek)
+					&& yearMatcher.match(year);
 			if (eval) {
 				return true;
 			}
@@ -492,7 +531,7 @@ public class SchedulingPattern {
 	 * This methods returns true if the given timestamp (expressed as a UNIX-era
 	 * millis value) matches the pattern, according to the system default time
 	 * zone.
-	 * 
+	 *
 	 * @param millis
 	 *            The timestamp, as a UNIX-era millis value.
 	 * @return true if the given timestamp matches the pattern.
@@ -503,7 +542,7 @@ public class SchedulingPattern {
 
 	/**
 	 * Returns the pattern as a string.
-	 * 
+	 *
 	 * @return The pattern as a string.
 	 */
 	public String toString() {
@@ -512,7 +551,7 @@ public class SchedulingPattern {
 
 	/**
 	 * This utility method changes an alias to an int value.
-	 * 
+	 *
 	 * @param value
 	 *            The value.
 	 * @param aliases
@@ -540,7 +579,7 @@ public class SchedulingPattern {
 
 		/**
 		 * Attempts to parse a value.
-		 * 
+		 *
 		 * @param value
 		 *            The value.
 		 * @return The parsed value.
@@ -551,14 +590,14 @@ public class SchedulingPattern {
 
 		/**
 		 * Returns the minimum value accepred by the parser.
-		 * 
+		 *
 		 * @return The minimum value accepred by the parser.
 		 */
 		public int getMinValue();
 
 		/**
 		 * Returns the maximum value accepred by the parser.
-		 * 
+		 *
 		 * @return The maximum value accepred by the parser.
 		 */
 		public int getMaxValue();
@@ -582,7 +621,7 @@ public class SchedulingPattern {
 
 		/**
 		 * Builds the value parser.
-		 * 
+		 *
 		 * @param minValue
 		 *            The minimum allowed value.
 		 * @param maxValue
@@ -619,6 +658,20 @@ public class SchedulingPattern {
 	/**
 	 * The minutes value parser.
 	 */
+	private static class SecondValueParser extends SimpleValueParser {
+
+		/**
+		 * Builds the value parser.
+		 */
+		public SecondValueParser() {
+			super(0, 59);
+		}
+
+	}
+
+	/**
+	 * The minutes value parser.
+	 */
 	private static class MinuteValueParser extends SimpleValueParser {
 
 		/**
@@ -626,6 +679,17 @@ public class SchedulingPattern {
 		 */
 		public MinuteValueParser() {
 			super(0, 59);
+		}
+
+	}
+
+	private static class YearValueParser extends SimpleValueParser {
+
+		/**
+		 * Builds the value parser.
+		 */
+		public YearValueParser() {
+			super(1990, 2100);
 		}
 
 	}
@@ -658,7 +722,7 @@ public class SchedulingPattern {
 
 		/**
 		 * Added to support last-day-of-month.
-		 * 
+		 *
 		 * @param value
 		 *            The value to be parsed
 		 * @return the integer day of the month or 32 for last day of the month
