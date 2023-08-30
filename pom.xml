@@ -1,11 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>it.sauronsoftware</groupId>
+    <groupId>com.webjetcms</groupId>
     <artifactId>cron4j</artifactId>
     <version>2.2.5</version>
     <packaging>jar</packaging>
     <description>
+    WebJET CMS version of cron4j with added support for Year and Seconds scheduling/parsing.
 	cron4j is a scheduler for the Java platform which is very similar to the UNIX cron daemon.
 	With cron4j you can launch, from within your Java applications, any task you need at the right time,
 	according to some simple rules.
@@ -41,8 +42,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.4</source>
-                    <target>1.4</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>

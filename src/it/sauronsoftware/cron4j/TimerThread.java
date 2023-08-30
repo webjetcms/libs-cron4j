@@ -1,8 +1,8 @@
 /*
  * cron4j - A pure Java cron-like scheduler
- * 
+ *
  * Copyright (C) 2007-2010 Carlo Pelliccia (www.sauronsoftware.it)
- * 
+ *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License version
  * 2.1, as published by the Free Software Foundation.
@@ -24,7 +24,7 @@ package it.sauronsoftware.cron4j;
  * most of the time sleeping. It wakes up every minute and it requests to the
  * scheduler the spawning of a {@link LauncherThread}.
  * </p>
- * 
+ *
  * @author Carlo Pelliccia
  * @since 2.0
  */
@@ -42,7 +42,7 @@ class TimerThread extends Thread {
 
 	/**
 	 * Builds the timer thread.
-	 * 
+	 *
 	 * @param scheduler
 	 *            The owner scheduler.
 	 */
@@ -55,7 +55,7 @@ class TimerThread extends Thread {
 
 	/**
 	 * Returns the GUID for this object.
-	 * 
+	 *
 	 * @return The GUID for this object.
 	 */
 	public Object getGuid() {
@@ -67,7 +67,7 @@ class TimerThread extends Thread {
 	 * exits before the requested time has passed. This one offers an
 	 * alternative that sometimes could sleep a few millis more than requested,
 	 * but never less.
-	 * 
+	 *
 	 * @param millis
 	 *            The length of time to sleep in milliseconds.
 	 * @throws InterruptedException
@@ -93,11 +93,11 @@ class TimerThread extends Thread {
 		// What time is it?
 		long millis = System.currentTimeMillis();
 		// Calculating next minute.
-		long nextMinute = ((millis / 60000) + 1) * 60000;
+		long nextSecond = ((millis / 1000) + 1) * 1000;
 		// Work until the scheduler is started.
 		for (;;) {
-			// Coffee break 'till next minute comes!
-			long sleepTime = (nextMinute - System.currentTimeMillis());
+			// Coffee break 'till next second comes!
+			long sleepTime = (nextSecond - System.currentTimeMillis());
 			if (sleepTime > 0) {
 				try {
 					safeSleep(sleepTime);
@@ -111,7 +111,7 @@ class TimerThread extends Thread {
 			// Launching the launching thread!
 			scheduler.spawnLauncher(millis);
 			// Calculating next minute.
-			nextMinute = ((millis / 60000) + 1) * 60000;
+			nextSecond = ((millis / 1000) + 1) * 1000;
 		}
 		// Discard scheduler reference.
 		scheduler = null;

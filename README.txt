@@ -1,6 +1,8 @@
 cron4j - A pure Java cron-like scheduler
 ========================================
 
+WebJET CMS version of cron4j with added support for Year and Seconds scheduling/parsing.
+
 Instructions
 ------------
 Unzip.
